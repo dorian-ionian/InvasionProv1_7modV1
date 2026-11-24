@@ -2911,8 +2911,9 @@ function bool IsWaveEndLeftover(Monster M)
 //Kill every such monster via its Died() so the wave ends clean. Also catches
 //hostile monsters with a non-monster controller (e.g. U1Pawns NaliRabbit uses
 //RabbitController), which IsMonsterController() and the cull loop skip but
-//NumHostileMonsters() still counts. Friendly monsters are excluded by the pawn
-//PRI check and by their controller class.
+//NumHostileMonsters() still counts. Friendly monsters with a live controller
+//are kept by the controller class check; a summon (TitanRPG friendly PRI) that
+//lost its controller has no owner and is swept too.
 function KillControllerlessMonsters()
 {
 	local Monster M;
@@ -2925,7 +2926,8 @@ function KillControllerlessMonsters()
 					&& !M.Controller.IsA('FriendlyMonsterController')
 					&& !M.Controller.IsA('PetController')
 					&& !M.Controller.IsA('SMPNaliFighterController')))
-			&& M.PlayerReplicationInfo == None )
+			&& (M.PlayerReplicationInfo == None
+				|| Right(string(M.PlayerReplicationInfo.Class), Len("FriendlyPawnPlayerReplicationInfo")) == "FriendlyPawnPlayerReplicationInfo") )
 		{
 			M.Health = 0;
 			M.Died(None, class'Suicided', M.Location);

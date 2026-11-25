@@ -1625,7 +1625,8 @@ function Killed( Controller Killer, Controller Killed, Pawn KilledPawn, class<Da
 		KillerPawn = Killer.Pawn;
 		if( KillerPawn != None && Monster(KillerPawn) == None && Vehicle(KillerPawn) != None && Vehicle(KillerPawn).Driver != None )
 			KillerPawn = Vehicle(KillerPawn).Driver;
-		if(KillerPawn != None)
+		//summoned monsters (TitanRPG FriendlyMonsterController) don't count toward the monster table
+		if(KillerPawn != None && !Killer.IsA('FriendlyMonsterController'))
 			UpdateMonsterTypeStats(KillerPawn.Class, 0, 0, 1);
 	}
 

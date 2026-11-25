@@ -8,7 +8,7 @@ class InvasionProModHud extends InvasionProHud config(User);
 var() config bool bDisplayWaveTime;  //toggle for the wave-time readout (User.ini)
 var() config float WaveTimePosX;     //screen fraction (0-1) for the readout X - default lines up with the necro digits
 var() config float WaveTimePosY;     //screen fraction (0-1) for the readout Y - default sits just below the digits
-var() config float GibSize;          //client-only: gib size multiplier, 0-10 (set from the Gib Preferences menu)
+var() config float GibSize;          //client-only: gib size multiplier, 0-10 (set from the Player Preferences menu)
 var() config int GibAmount;          //client-only: gib amount multiplier, 1-25 (1 = normal amount)
 var float NextGibScanTime;           //level time of the next scan for newly spawned gibs
 var Actor NewGibs[64];               //gibs scaled in the current scan, given extra copies after the scan

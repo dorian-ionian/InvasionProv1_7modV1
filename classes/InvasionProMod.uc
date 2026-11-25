@@ -42,6 +42,10 @@ var() config int SpawnBySkillMinWeight; //lowest spawn weight, so the strongest 
 var() config float SpawnBySkillPenalty; //how hard kill rate lowers weight: rate = (NumKills + NumDamage / DamagePerKill) / NumSpawns
 var() config int SpawnBySkillDamagePerKill; //damage dealt that counts as one kill in the spawn rate
 var() config float SpawnBySkillDecayPercent; //percent of NumSpawns, NumKills and NumDamage removed at each wave start (0 = no decay)
+var() config bool bAdaptiveMonsterScore; //monster score rises with its lifetime kill/damage rate; base score when it has no spawns
+var() config int AdaptiveMonsterBaseScore; //score for monsters with no performance data, and the base the rate adds to
+var() config float AdaptiveMonsterScoreScale; //how much the performance rate raises the score: score = base + base * scale * rate
+var() config int AdaptiveMonsterMaxScore; //cap on the adaptive score
 
 var HulkModeDriver HulkDriver;          //server-side growth/state driver
 var InvasionProWaveTimer WaveTimerActor; //replicated wave-time carrier for the HUD
@@ -3012,6 +3016,45 @@ function DecaySpawnBySkillStats()
     }
 }
 
+//Score for a monster type from its lifetime stats. Uses the same kill rate as spawn-by-skill.
+function int GetAdaptiveMonsterScore(int NumSpawns, int NumKills, int NumDamage)
+{
+    local float PerKill, Spawns, Rate, Score;
+
+    if(NumSpawns <= 0)
+        return AdaptiveMonsterBaseScore;
+    PerKill = SpawnBySkillDamagePerKill;
+    if(PerKill < 1)
+        PerKill = 1;
+    Spawns = NumSpawns;
+    Rate = (NumKills + NumDamage / PerKill) / Spawns;
+    Score = AdaptiveMonsterBaseScore + AdaptiveMonsterBaseScore * AdaptiveMonsterScoreScale * Rate;
+    if(Score > AdaptiveMonsterMaxScore)
+        Score = AdaptiveMonsterMaxScore;
+    if(Score < 1)
+        Score = 1;
+    return int(Score + 0.5);
+}
+
+//Sets a freshly spawned monster's ScoringValue from its type's stats. Call after UpdateMonsterTypeStats.
+function ApplyAdaptiveMonsterScore(Monster M)
+{
+    local int i;
+    local string MonsterTypeClass;
+
+    if(!bAdaptiveMonsterScore || M == None)
+        return;
+    MonsterTypeClass = String(M.Class);
+    for(i=0;i<class'InvasionProMonsterTable'.default.MonsterTable.Length;i++)
+    {
+        if(MonsterTypeClass ~= class'InvasionProMonsterTable'.default.MonsterTable[i].MonsterClassName)
+        {
+            M.ScoringValue = GetAdaptiveMonsterScore(class'InvasionProMonsterTable'.default.MonsterTable[i].NumSpawns, class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills, class'InvasionProMonsterTable'.default.MonsterTable[i].NumDamage);
+            return;
+        }
+    }
+}
+
 //Random monster table index. Uniform unless bSpawnBySkill is on.
 function int PickSpawnTableIndex()
 {
@@ -3103,6 +3146,7 @@ function AddMonster()
 			TotalSpawned++;
 			WaveMonsters++;
 			UpdateMonsterTypeStats(NewMonster.Class, 1, 0, 0);
+			ApplyAdaptiveMonsterScore(NewMonster);
 			//InvasionProMutator(BaseMutator).ModifyMonster(NewMonster,false,false);
 			Inv = NewMonster.FindInventoryType(class'InvasionProMonsterIDInv');
 			if(InvasionProMonsterIDInv(Inv) != None)
@@ -4868,6 +4912,10 @@ defaultproperties
      SpawnBySkillPenalty=10.000000
      SpawnBySkillDamagePerKill=10
      SpawnBySkillDecayPercent=10.000000
+     bAdaptiveMonsterScore=False
+     AdaptiveMonsterBaseScore=5
+     AdaptiveMonsterScoreScale=1.000000
+     AdaptiveMonsterMaxScore=25
      //wave time limit grace (secs) before ALL remaining monsters are
      //force-killed so the wave ends. 0 = kill everything immediately.
      WaveEndForceKillDelay=15.0

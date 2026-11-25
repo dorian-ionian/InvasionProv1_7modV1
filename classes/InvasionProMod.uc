@@ -4192,6 +4192,8 @@ function EndGame( PlayerReplicationInfo Winner, string Reason )
 function SetEndGame( PlayerReplicationInfo Winner, string Reason )
 {
 	SavePetData();
+	UpdateMonsterStats();
+	class'InvasionProMonsterTable'.static.StaticSaveConfig();
 	CheckEndGame(Winner, Reason);
 	bGameEnded = true;
 	TriggerEvent('EndGame', self, None);

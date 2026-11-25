@@ -42,8 +42,8 @@ var() config int SpawnBySkillMinWeight; //lowest spawn weight, so the strongest 
 var() config float SpawnBySkillPenalty; //how hard kill rate lowers weight: rate = (NumKills + NumDamage / DamagePerKill) / NumSpawns
 var() config int SpawnBySkillDamagePerKill; //damage dealt that counts as one kill in the spawn rate
 var() config float SpawnBySkillDecayPercent; //percent of NumSpawns, NumKills and NumDamage removed at each wave start (0 = no decay)
-var() config bool bAdaptiveMonsterScore; //monster score rises with its lifetime kill/damage rate; base score when it has no spawns
-var() config int AdaptiveMonsterBaseScore; //score for monsters with no performance data, and the base the rate adds to
+var() config bool bAdaptiveMonsterScore; //monster score rises with its lifetime kill/damage rate; when on, MonsterTable NewScoreAward is ignored for spawned monsters
+var() config int AdaptiveMonsterBaseScore; //score for monsters with no performance data, and the base the rate adds to (replaces NewScoreAward when adaptive is on)
 var() config float AdaptiveMonsterScoreScale; //how much the performance rate raises the score: score = base + base * scale * rate
 var() config int AdaptiveMonsterMaxScore; //cap on the adaptive score
 

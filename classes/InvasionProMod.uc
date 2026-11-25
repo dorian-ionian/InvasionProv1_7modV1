@@ -996,7 +996,11 @@ function int ReduceDamage( int Damage, pawn injured, pawn instigatedBy, vector H
 		Damage = 0;
 	}
 
-	//if no one instigated it
+	//vortex launchers can't hurt pets
+	if ( injured != None && injured.Controller != None && injured.Controller.IsA('PetController') && DamageType != None && DamageType.Name == 'DamTypeVortex' )
+	{
+		Damage = 0;
+	}
     //if ( instigatedBy == None || injured == None)
     //{
 		//if ( GameRulesModifiers != None )
@@ -1353,6 +1357,12 @@ function float GetBossDamage(Monster M)
 function bool PreventDeath(Pawn Killed, Controller Killer, class<DamageType> damageType, vector HitLocation)
 {
 	local PlayerReplicationInfo PRI;
+
+	//VortexProj kills pawns with an explicit Died() call, so block that for pets
+	if ( Killed != None && Killed.Controller != None && Killed.Controller.IsA('PetController') && damageType != None && damageType.Name == 'DamTypeVortex' )
+	{
+		return true;
+	}
 
     if ( GameRulesModifiers != None && GameRulesModifiers.PreventDeath(Killed,Killer, damageType,HitLocation))
     {
@@ -4197,6 +4207,11 @@ function SetEndGame( PlayerReplicationInfo Winner, string Reason )
 	SavePetData();
 	UpdateMonsterStats();
 	class'InvasionProMonsterTable'.static.StaticSaveConfig();
+	//the wave counter is one past the last wave when the final wave is cleared
+	if ( WaveNum >= LastWave )
+	{
+		InvasionProGameReplicationInfo(GameReplicationInfo).WaveNumber = LastWave - 1;
+	}
 	CheckEndGame(Winner, Reason);
 	bGameEnded = true;
 	TriggerEvent('EndGame', self, None);

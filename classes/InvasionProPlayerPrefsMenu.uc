@@ -4,56 +4,27 @@ var() Automated moSlider sl_GibSize;
 var() Automated moSlider sl_GibAmount;
 var() Automated moSlider sl_InteractionSize;
 
-//TitanRPG is optional, so its settings object is reached by name rather than linked at compile time
-function class<Object> GetTitanSettingsClass()
-{
-	return class<Object>(DynamicLoadObject("TitanRPG_DorianV1.RPGSettings", class'Class', true));
-}
-
 function InitComponent(GUIController MyController, GUIComponent MyOwner)
 {
-	local class<Object> C;
-	local Object Obj;
-
 	Super.InitComponent(MyController, MyOwner);
 
 	t_WindowTitle.Caption = "Player Preferences";
 	sl_GibSize.Setup(0, 10, false);
 	sl_GibAmount.Setup(1, 25, true);
 	sl_InteractionSize.Setup(0.5, 2.0, false);
-	sl_GibSize.SetComponentValue(class'InvasionProModHud'.default.GibSize);
-	sl_GibAmount.SetComponentValue(class'InvasionProModHud'.default.GibAmount);
-
-	C = GetTitanSettingsClass();
-	if(C != None)
-	{
-		Obj = new(None, "TitanRPG") C;
-		sl_InteractionSize.SetComponentValue(float(Obj.GetPropertyText("InteractionScale")));
-	}
-	else
-	{
-		sl_InteractionSize.SetComponentValue(1.0);
-	}
+	sl_GibSize.SetComponentValue(class'DorianRPGInvServerSettings'.default.GibSize);
+	sl_GibAmount.SetComponentValue(class'DorianRPGInvServerSettings'.default.GibAmount);
+	sl_InteractionSize.SetComponentValue(class'DorianRPGInvServerSettings'.default.InteractionScale);
 }
 
 function bool InternalOnClick(GUIComponent Sender)
 {
-	local class<Object> C;
-	local Object Obj;
-
 	if(Sender == b_OK)
 	{
-		class'InvasionProModHud'.default.GibSize = float(sl_GibSize.GetComponentValue());
-		class'InvasionProModHud'.default.GibAmount = int(sl_GibAmount.GetComponentValue());
-		class'InvasionProModHud'.static.StaticSaveConfig();
-
-		C = GetTitanSettingsClass();
-		if(C != None)
-		{
-			Obj = new(None, "TitanRPG") C;
-			Obj.SetPropertyText("InteractionScale", string(float(sl_InteractionSize.GetComponentValue())));
-			Obj.SaveConfig();
-		}
+		class'DorianRPGInvServerSettings'.default.GibSize = float(sl_GibSize.GetComponentValue());
+		class'DorianRPGInvServerSettings'.default.GibAmount = int(sl_GibAmount.GetComponentValue());
+		class'DorianRPGInvServerSettings'.default.InteractionScale = float(sl_InteractionSize.GetComponentValue());
+		class'DorianRPGInvServerSettings'.static.StaticSaveConfig();
 	}
 
 	Controller.CloseMenu(false);

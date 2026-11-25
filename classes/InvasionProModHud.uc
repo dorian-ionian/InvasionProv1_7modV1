@@ -8,8 +8,6 @@ class InvasionProModHud extends InvasionProHud config(User);
 var() config bool bDisplayWaveTime;  //toggle for the wave-time readout (User.ini)
 var() config float WaveTimePosX;     //screen fraction (0-1) for the readout X - default lines up with the necro digits
 var() config float WaveTimePosY;     //screen fraction (0-1) for the readout Y - default sits just below the digits
-var() config float GibSize;          //client-only: gib size multiplier, 0-10 (set from the Player Preferences menu)
-var() config int GibAmount;          //client-only: gib amount multiplier, 1-25 (1 = normal amount)
 var float NextGibScanTime;           //level time of the next scan for newly spawned gibs
 var Actor NewGibs[64];               //gibs scaled in the current scan, given extra copies after the scan
 var int NewGibCount;                 //used entries in NewGibs
@@ -171,8 +169,8 @@ simulated function ScaleLesserGibs()
 		return;
 	}
 
-	F = class'InvasionProModHud'.default.GibSize;
-	Amount = Clamp(class'InvasionProModHud'.default.GibAmount, 1, 25);
+	F = class'DorianRPGInvServerSettings'.default.GibSize;
+	Amount = Clamp(class'DorianRPGInvServerSettings'.default.GibAmount, 1, 25);
 	if( F == 1.0 && Amount == 1 )
 	{
 		return;
@@ -374,6 +372,4 @@ defaultproperties
 	bDisplayWaveTime=True
 	WaveTimePosX=0.010000
 	WaveTimePosY=0.130000
-	GibSize=1.000000
-	GibAmount=1
 }

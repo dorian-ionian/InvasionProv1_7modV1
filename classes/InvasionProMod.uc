@@ -2738,11 +2738,11 @@ function CullMonsters(bool bSightCheck, bool bHostile, bool bFriend)
 			continue;
 		if(C.Pawn != None && C.Pawn.Health > 0)
 		{
-			//Friendly monsters (FriendlyMonsterController / PetController / Nali
-			//fighters) are never wave-end culled - even in the brief pre-PRI
-			//window, the IsA checks below catch them.
+			//Friendly monsters (FriendlyMonsterController / PetController) are never
+			//wave-end culled - even in the brief pre-PRI window, the IsA checks below
+			//catch them. NaliFighters with any other controller are hostile and culled.
 			if(bHostile && IsMonsterController(C) && C.PlayerReplicationInfo == None
-				&& !C.IsA('FriendlyMonsterController') && !C.IsA('PetController') && !C.IsA('SMPNaliFighterController') )
+				&& !C.IsA('FriendlyMonsterController') && !C.IsA('PetController') )
 			{
 				//WAVE-END KILL for vehicle monsters (2026-08-08): the stock
 				//sight rule (unseen for 30s) NEVER fires for them - their
@@ -2858,7 +2858,7 @@ function bool KillOneWaveEndMonster()
 		//NumHostileMonsters() counts any monster with a non-friendly controller, PRI or not,
 		//so the cull must reach the same set or a PRI-holding monster blocks the wave forever
 		if ( C.Pawn != None && C.Pawn.Health > 0 && IsMonsterController(C) && !C.IsA('PlayerController')
-			&& !C.IsA('FriendlyMonsterController') && !C.IsA('PetController') && !C.IsA('SMPNaliFighterController') )
+			&& !C.IsA('FriendlyMonsterController') && !C.IsA('PetController') )
 		{
 			PN = string(C.Pawn.Class.Name);
 			if ( Left(PN, 14) == "VehicleMonster" )
@@ -2920,7 +2920,7 @@ function bool IsWaveEndLeftover(Monster M)
 	if ( M.Controller != None && !M.Controller.bDeleteMe && IsMonsterController(M.Controller) )
 		return false;
 	if ( M.Controller != None && !M.Controller.bDeleteMe
-		&& (M.Controller.IsA('FriendlyMonsterController') || M.Controller.IsA('PetController') || M.Controller.IsA('SMPNaliFighterController')) )
+		&& (M.Controller.IsA('FriendlyMonsterController') || M.Controller.IsA('PetController')) )
 		return false;
 	return true;
 }
@@ -2950,8 +2950,7 @@ function KillControllerlessMonsters(string Reason)
 			&& (P.Controller == None || P.Controller.bDeleteMe || P.Controller.Pawn != P
 				|| (!IsMonsterController(P.Controller)
 					&& !P.Controller.IsA('FriendlyMonsterController')
-					&& !P.Controller.IsA('PetController')
-					&& !P.Controller.IsA('SMPNaliFighterController')))
+					&& !P.Controller.IsA('PetController')))
 			&& (P.PlayerReplicationInfo == None
 				|| Right(string(P.PlayerReplicationInfo.Class), Len("FriendlyPawnPlayerReplicationInfo")) == "FriendlyPawnPlayerReplicationInfo") )
 		{

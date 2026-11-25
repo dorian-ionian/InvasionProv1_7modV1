@@ -37,7 +37,8 @@ var() config array<string> BotChatterDownLines;  //admin-editable: bot lines whe
 var() config array<string> BotChatterSmallTalkLines; //admin-editable: fun lines at wave start, no name
 var() config array<string> BotChatterSmallTalkTeamLines; //admin-editable: wave-start lines naming a teammate (%s = teammate name)
 var() config bool bSpawnBySkill;        //random spawns weighted so monsters with more kills per spawn spawn less often
-var() config int SpawnBySkillWeightBase; //spawn weight = base / (1 + penalty * rate), minimum 1
+var() config int SpawnBySkillWeightBase; //spawn weight = base / (1 + penalty * rate), never below SpawnBySkillMinWeight
+var() config int SpawnBySkillMinWeight; //lowest spawn weight, so the strongest monsters still spawn sometimes
 var() config float SpawnBySkillPenalty; //how hard kill rate lowers weight: rate = (NumKills + NumDamage / DamagePerKill) / NumSpawns
 var() config int SpawnBySkillDamagePerKill; //damage dealt that counts as one kill in the spawn rate
 var() config float SpawnBySkillDecayPercent; //percent of NumSpawns, NumKills and NumDamage removed at each wave start (0 = no decay)
@@ -2974,6 +2975,8 @@ function int GetSpawnBySkillWeight(int NumSpawns, int NumKills, int NumDamage)
         Spawns = 1;
     Rate = (NumKills + NumDamage / PerKill) / Spawns;
     Weight = SpawnBySkillWeightBase / (1.0 + SpawnBySkillPenalty * Rate);
+    if(Weight < SpawnBySkillMinWeight)
+        Weight = SpawnBySkillMinWeight;
     if(Weight < 1)
         Weight = 1;
     return int(Weight);
@@ -4846,6 +4849,7 @@ defaultproperties
      //bSpawnBySkill: monsters with a higher kill rate per spawn spawn less often
      bSpawnBySkill=False
      SpawnBySkillWeightBase=1000
+     SpawnBySkillMinWeight=20
      SpawnBySkillPenalty=10.000000
      SpawnBySkillDamagePerKill=10
      SpawnBySkillDecayPercent=10.000000

@@ -1079,7 +1079,10 @@ function int ReduceDamage( int Damage, pawn injured, pawn instigatedBy, vector H
 			MonsterTeamScore += (Damage/2);
 			TotalDamage = TotalDamage + Damage;
 			if(InstigatingMonster != None)
-				UpdateMonsterTypeStats(InstigatingMonster.Class, 0, Damage, 0);
+			{
+				if( HulkDriver == None || !HulkDriver.IsHulked(InstigatingMonster) )
+					UpdateMonsterTypeStats(InstigatingMonster.Class, 0, Damage, 0);
+			}
 			else
 				UpdateMonsterTypeStats(InstigatedBy.Class, 0, Damage, 0);
 

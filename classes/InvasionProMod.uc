@@ -36,9 +36,11 @@ var() config array<string> BotChatterTeamLines;  //admin-editable: bot lines nam
 var() config array<string> BotChatterDownLines;  //admin-editable: bot lines when a teammate goes down (%s = that player's name)
 var() config array<string> BotChatterSmallTalkLines; //admin-editable: fun lines at wave start, no name
 var() config array<string> BotChatterSmallTalkTeamLines; //admin-editable: wave-start lines naming a teammate (%s = teammate name)
-var() config bool bSpawnBySkill;        //random spawns weighted so monsters with more NumKills spawn less often
-var() config int SpawnBySkillWeightBase; //spawn weight = base / (1 + NumKills + NumDamage / DamagePerKill), minimum 1
-var() config int SpawnBySkillDamagePerKill; //damage dealt that counts as one kill in the spawn weight
+var() config bool bSpawnBySkill;        //random spawns weighted so monsters with more kills per spawn spawn less often
+var() config int SpawnBySkillWeightBase; //spawn weight = base / (1 + penalty * rate), minimum 1
+var() config float SpawnBySkillPenalty; //how hard kill rate lowers weight: rate = (NumKills + NumDamage / DamagePerKill) / NumSpawns
+var() config int SpawnBySkillDamagePerKill; //damage dealt that counts as one kill in the spawn rate
+var() config float SpawnBySkillDecayPercent; //percent of NumSpawns, NumKills and NumDamage removed at each wave start (0 = no decay)
 
 var HulkModeDriver HulkDriver;          //server-side growth/state driver
 var InvasionProWaveTimer WaveTimerActor; //replicated wave-time carrier for the HUD
@@ -2960,18 +2962,41 @@ function KillControllerlessMonsters(string Reason)
 	}
 }
 
-function int GetSpawnBySkillWeight(int NumKills, int NumDamage)
+function int GetSpawnBySkillWeight(int NumSpawns, int NumKills, int NumDamage)
 {
-    local float PerKill, Score, Weight;
+    local float PerKill, Spawns, Rate, Weight;
 
     PerKill = SpawnBySkillDamagePerKill;
     if(PerKill < 1)
         PerKill = 1;
-    Score = NumKills + NumDamage / PerKill;
-    Weight = SpawnBySkillWeightBase / (1.0 + Score);
+    Spawns = NumSpawns;
+    if(Spawns < 1)
+        Spawns = 1;
+    Rate = (NumKills + NumDamage / PerKill) / Spawns;
+    Weight = SpawnBySkillWeightBase / (1.0 + SpawnBySkillPenalty * Rate);
     if(Weight < 1)
         Weight = 1;
     return int(Weight);
+}
+
+//Scales the spawn, kill and damage counts down at each wave start, so the weights follow recent play.
+//Every count is scaled by the same factor, so the rates keep their value until new events add to them.
+function DecaySpawnBySkillStats()
+{
+    local int i;
+    local float Keep;
+
+    if(!bSpawnBySkill || SpawnBySkillDecayPercent <= 0)
+        return;
+    Keep = 1.0 - SpawnBySkillDecayPercent / 100.0;
+    if(Keep < 0)
+        Keep = 0;
+    for(i=0;i<class'InvasionProMonsterTable'.default.MonsterTable.Length;i++)
+    {
+        class'InvasionProMonsterTable'.default.MonsterTable[i].NumSpawns = int(class'InvasionProMonsterTable'.default.MonsterTable[i].NumSpawns * Keep);
+        class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills = int(class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills * Keep);
+        class'InvasionProMonsterTable'.default.MonsterTable[i].NumDamage = int(class'InvasionProMonsterTable'.default.MonsterTable[i].NumDamage * Keep);
+    }
 }
 
 //Random monster table index. Uniform unless bSpawnBySkill is on.
@@ -2986,12 +3011,12 @@ function int PickSpawnTableIndex()
         return Rand(Len);
 
     for(i = 0; i < Len; i++)
-        Total += GetSpawnBySkillWeight(class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills, class'InvasionProMonsterTable'.default.MonsterTable[i].NumDamage);
+        Total += GetSpawnBySkillWeight(class'InvasionProMonsterTable'.default.MonsterTable[i].NumSpawns, class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills, class'InvasionProMonsterTable'.default.MonsterTable[i].NumDamage);
 
     Roll = Rand(Total);
     for(i = 0; i < Len; i++)
     {
-        Acc += GetSpawnBySkillWeight(class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills, class'InvasionProMonsterTable'.default.MonsterTable[i].NumDamage);
+        Acc += GetSpawnBySkillWeight(class'InvasionProMonsterTable'.default.MonsterTable[i].NumSpawns, class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills, class'InvasionProMonsterTable'.default.MonsterTable[i].NumDamage);
         if(Roll < Acc)
             return i;
     }
@@ -3156,6 +3181,7 @@ function SetUpWave()
 	local class<Monster> CurrentMonsterClass; //current monster class being loaded
 
 	NewWave(); //update custom info incase wave was skipped
+	DecaySpawnBySkillStats(); //fade old kill/damage/spawn counts so spawn weights follow recent play
 	UpdateMaxLives(); //update wave max lives
 	UpdatePlayerLives();//update player lives and deaths
 
@@ -4815,10 +4841,12 @@ defaultproperties
      HulkMinDamage=10
      bHulkExcludeSprites=True
      bHulkBosses=False
-     //bSpawnBySkill: monsters with more NumKills spawn less often (weight = base / (1 + NumKills))
+     //bSpawnBySkill: monsters with a higher kill rate per spawn spawn less often
      bSpawnBySkill=False
      SpawnBySkillWeightBase=1000
-     SpawnBySkillDamagePerKill=100
+     SpawnBySkillPenalty=10.000000
+     SpawnBySkillDamagePerKill=10
+     SpawnBySkillDecayPercent=10.000000
      //wave time limit grace (secs) before ALL remaining monsters are
      //force-killed so the wave ends. 0 = kill everything immediately.
      WaveEndForceKillDelay=15.0

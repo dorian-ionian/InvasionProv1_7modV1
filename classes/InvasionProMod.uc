@@ -36,6 +36,8 @@ var() config array<string> BotChatterTeamLines;  //admin-editable: bot lines nam
 var() config array<string> BotChatterDownLines;  //admin-editable: bot lines when a teammate goes down (%s = that player's name)
 var() config array<string> BotChatterSmallTalkLines; //admin-editable: fun lines at wave start, no name
 var() config array<string> BotChatterSmallTalkTeamLines; //admin-editable: wave-start lines naming a teammate (%s = teammate name)
+var() config bool bSpawnBySkill;        //random spawns weighted so monsters with more NumKills spawn less often
+var() config int SpawnBySkillWeightBase; //spawn weight = base / (1 + NumKills), minimum 1
 
 var HulkModeDriver HulkDriver;          //server-side growth/state driver
 var InvasionProWaveTimer WaveTimerActor; //replicated wave-time carrier for the HUD
@@ -2952,6 +2954,40 @@ function KillControllerlessMonsters(string Reason)
 	}
 }
 
+function int GetSpawnBySkillWeight(int NumKills)
+{
+    local int Weight;
+
+    Weight = SpawnBySkillWeightBase / (1 + NumKills);
+    if(Weight < 1)
+        Weight = 1;
+    return Weight;
+}
+
+//Random monster table index. Uniform unless bSpawnBySkill is on.
+function int PickSpawnTableIndex()
+{
+    local int i, Total, Roll, Acc, Len;
+
+    Len = class'InvasionProMonsterTable'.default.MonsterTable.Length;
+    if(Len < 1)
+        return 0;
+    if(!bSpawnBySkill)
+        return Rand(Len);
+
+    for(i = 0; i < Len; i++)
+        Total += GetSpawnBySkillWeight(class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills);
+
+    Roll = Rand(Total);
+    for(i = 0; i < Len; i++)
+    {
+        Acc += GetSpawnBySkillWeight(class'InvasionProMonsterTable'.default.MonsterTable[i].NumKills);
+        if(Roll < Acc)
+            return i;
+    }
+    return Len - 1;
+}
+
 function AddMonster()
 {
     local NavigationPoint StartSpot; //spawn location
@@ -2963,7 +2999,7 @@ function AddMonster()
 	if(!bBossWave)
 	{
 //		NewMonsterClass = WaveMonsterClass[Rand(WaveNumClasses)];
-		NewMonsterClass = class<Monster>(DynamicLoadObject(class'InvasionProMonsterTable'.default.MonsterTable[rand(class'InvasionProMonsterTable'.default.MonsterTable.Length)].MonsterClassName, class'Class',true));
+		NewMonsterClass = class<Monster>(DynamicLoadObject(class'InvasionProMonsterTable'.default.MonsterTable[PickSpawnTableIndex()].MonsterClassName, class'Class',true));
 		if(NewMonsterClass != None)
 		{
 			//2026-08-09 v23: the old flying gate (skip Cicada/DualCicada on
@@ -4769,6 +4805,9 @@ defaultproperties
      HulkMinDamage=10
      bHulkExcludeSprites=True
      bHulkBosses=False
+     //bSpawnBySkill: monsters with more NumKills spawn less often (weight = base / (1 + NumKills))
+     bSpawnBySkill=False
+     SpawnBySkillWeightBase=1000
      //wave time limit grace (secs) before ALL remaining monsters are
      //force-killed so the wave ends. 0 = kill everything immediately.
      WaveEndForceKillDelay=15.0

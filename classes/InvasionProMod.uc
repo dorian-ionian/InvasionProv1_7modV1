@@ -1747,7 +1747,7 @@ function ForceNextWave()
 
 	//Controller==None monsters are skipped above (the controller gate) -
 	//sweep them too so a skipped wave leaves no leftovers behind.
-	KillControllerlessMonsters();
+	KillControllerlessMonsters("wave end");
 
 	NewWave();
 	bWaveInProgress = false;
@@ -2390,7 +2390,7 @@ State MatchInProgress
         {
 			//monsters that lost their controller mid-wave (e.g. summoned or
 			//resurrected by an Archvile) are killed on the next tick
-			KillControllerlessMonsters();
+			KillControllerlessMonsters("mid-wave");
 
 			if( Resurrectee != None && ShouldStillResurrect())
 			{
@@ -2506,7 +2506,7 @@ State MatchInProgress
 			//controller during the fight would otherwise linger forever.
 			//Call Died() on them now (friendly monsters are skipped).
 			//Runs every countdown tick - idempotent (nothing left to kill).
-			KillControllerlessMonsters();
+			KillControllerlessMonsters("countdown");
 			if ( WaveNum == LastWave )
 			{
 				//CheckScore(None);
@@ -2914,9 +2914,10 @@ function bool IsWaveEndLeftover(Monster M)
 //NumHostileMonsters() still counts. Friendly monsters with a live controller
 //are kept by the controller class check; a summon (TitanRPG friendly PRI) that
 //lost its controller has no owner and is swept too.
-function KillControllerlessMonsters()
+function KillControllerlessMonsters(string Reason)
 {
 	local Pawn P;
+	local string CtrlState;
 
 	//Pawn, not Monster: a leftover can be any non-player pawn type. A controller
 	//that no longer points back at the pawn counts as lost too.
@@ -2932,6 +2933,18 @@ function KillControllerlessMonsters()
 			&& (P.PlayerReplicationInfo == None
 				|| Right(string(P.PlayerReplicationInfo.Class), Len("FriendlyPawnPlayerReplicationInfo")) == "FriendlyPawnPlayerReplicationInfo") )
 		{
+			if(P.Controller == None)
+				CtrlState = "none";
+			else if(P.Controller.bDeleteMe)
+				CtrlState = "deleted " $ string(P.Controller.Class);
+			else if(P.Controller.Pawn != P)
+				CtrlState = string(P.Controller.Class) $ " not pointing back at pawn";
+			else
+				CtrlState = string(P.Controller.Class);
+
+			Log("Controllerless pawn killed:" @ Reason @ "| wave" @ WaveNum @ "| time" @ Level.TimeSeconds
+				@ "| class" @ string(P.Class) @ "| controller" @ CtrlState @ "| health" @ P.Health
+				@ "| location" @ P.Location, 'InvasionPro');
 			P.Health = 0;
 			P.Died(None, class'Suicided', P.Location);
 		}

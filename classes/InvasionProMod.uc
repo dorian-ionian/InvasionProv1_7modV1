@@ -997,7 +997,7 @@ function int ReduceDamage( int Damage, pawn injured, pawn instigatedBy, vector H
 	}
 
 	//vortex launchers can't hurt pets
-	if ( injured != None && injured.Controller != None && injured.Controller.IsA('PetController') && DamageType != None && DamageType.Name == 'DamTypeVortex' )
+	if ( injured != None && injured.Controller != None && (injured.Controller.IsA('PetController') || injured.Controller.IsA('FriendlyMonsterController')) && DamageType != None && DamageType.Name == 'DamTypeVortex' )
 	{
 		Damage = 0;
 	}
@@ -1359,7 +1359,7 @@ function bool PreventDeath(Pawn Killed, Controller Killer, class<DamageType> dam
 	local PlayerReplicationInfo PRI;
 
 	//VortexProj kills pawns with an explicit Died() call, so block that for pets
-	if ( Killed != None && Killed.Controller != None && Killed.Controller.IsA('PetController') && damageType != None && damageType.Name == 'DamTypeVortex' )
+	if ( Killed != None && Killed.Controller != None && (Killed.Controller.IsA('PetController') || Killed.Controller.IsA('FriendlyMonsterController')) && damageType != None && damageType.Name == 'DamTypeVortex' )
 	{
 		return true;
 	}

@@ -2950,7 +2950,8 @@ function KillControllerlessMonsters(string Reason)
 			&& (P.Controller == None || P.Controller.bDeleteMe || P.Controller.Pawn != P
 				|| (!IsMonsterController(P.Controller)
 					&& !P.Controller.IsA('FriendlyMonsterController')
-					&& !P.Controller.IsA('PetController')))
+					&& !P.Controller.IsA('PetController')
+					&& !P.Controller.IsA('SMPNaliFighterController')))
 			&& (P.PlayerReplicationInfo == None
 				|| Right(string(P.PlayerReplicationInfo.Class), Len("FriendlyPawnPlayerReplicationInfo")) == "FriendlyPawnPlayerReplicationInfo") )
 		{

@@ -2916,21 +2916,24 @@ function bool IsWaveEndLeftover(Monster M)
 //lost its controller has no owner and is swept too.
 function KillControllerlessMonsters()
 {
-	local Monster M;
+	local Pawn P;
 
-	foreach DynamicActors(class'Monster', M)
+	//Pawn, not Monster: a leftover can be any non-player pawn type. A controller
+	//that no longer points back at the pawn counts as lost too.
+	foreach DynamicActors(class'Pawn', P)
 	{
-		if( M != None && M.Health > 0
-			&& (M.Controller == None || M.Controller.bDeleteMe
-				|| (!IsMonsterController(M.Controller)
-					&& !M.Controller.IsA('FriendlyMonsterController')
-					&& !M.Controller.IsA('PetController')
-					&& !M.Controller.IsA('SMPNaliFighterController')))
-			&& (M.PlayerReplicationInfo == None
-				|| Right(string(M.PlayerReplicationInfo.Class), Len("FriendlyPawnPlayerReplicationInfo")) == "FriendlyPawnPlayerReplicationInfo") )
+		if( P != None && P.Health > 0 && !P.IsA('Vehicle') && !P.IsA('VehicleWeaponPawn')
+			&& P.DrivenVehicle == None
+			&& (P.Controller == None || P.Controller.bDeleteMe || P.Controller.Pawn != P
+				|| (!IsMonsterController(P.Controller)
+					&& !P.Controller.IsA('FriendlyMonsterController')
+					&& !P.Controller.IsA('PetController')
+					&& !P.Controller.IsA('SMPNaliFighterController')))
+			&& (P.PlayerReplicationInfo == None
+				|| Right(string(P.PlayerReplicationInfo.Class), Len("FriendlyPawnPlayerReplicationInfo")) == "FriendlyPawnPlayerReplicationInfo") )
 		{
-			M.Health = 0;
-			M.Died(None, class'Suicided', M.Location);
+			P.Health = 0;
+			P.Died(None, class'Suicided', P.Location);
 		}
 	}
 }

@@ -32,6 +32,36 @@ function bool IsVehicleMonsterShell(Vehicle V)
 	return (V != None && Left(string(V.Class.Name), 16) ~= "VehicleMonsterVeh");
 }
 
+//True if P was summoned by a friendly (pet) monster, directly or through its Owner chain
+function bool IsFriendlySummon(Pawn P)
+{
+	local Actor A;
+	local int i;
+
+	A = P.Instigator;
+	if (A == None)
+		A = P.Owner;
+
+	for (i = 0; i < 4 && A != None; i++)
+	{
+		if (Monster(A) != None && Monster(A).Controller != None && Monster(A).Controller.IsA('FriendlyMonsterController'))
+			return true;
+		A = A.Owner;
+	}
+	return false;
+}
+
+//Refusing relevance here makes the actor destroy itself in PreBeginPlay, before it can act
+function bool CheckReplacement(Actor Other, out byte bSuperRelevant)
+{
+	if (Monster(Other) != None && IsFriendlySummon(Pawn(Other)))
+	{
+		bSuperRelevant = 0;
+		return false;
+	}
+	return Super.CheckReplacement(Other, bSuperRelevant);
+}
+
 //Admin toggle for RPG-themed bot team chat: "mutate botchatter"
 simulated function Mutate(string MutateString, PlayerController Sender)
 {

@@ -2761,14 +2761,16 @@ function CullMonsters(bool bSightCheck, bool bHostile, bool bFriend)
 				PN = string(C.Pawn.Class.Name);
 				if ( Left(PN, 14) == "VehicleMonster" )
 				{
-					//SEAT PAWNS: NEVER cull directly - the vehicle's Died()
-					//-> KillGunners() destroys them. Culling them separately
-					//spams HostileMonsterKilled "Accessed None 'KilledPawn'"
-					//(their driver-less death has no monster pawn) and
-					//leaves the vehicle's seat list dangling. Skip them
-					//ENTIRELY (NOT falling through to the sight cull).
+					//SEAT PAWNS: normally NOT culled directly - the vehicle's Died()
+					//-> KillGunners() destroys them. If that Died() bailed and the
+					//vehicle is gone, the seat would survive forever and keep the
+					//wave open, so kill it then. Never falls through to the sight cull.
 					if ( ONSWeaponPawn(C.Pawn) != None )
+					{
+						if ( IsOrphanGunnerSeat(C.Pawn) )
+							KillOrphanGunnerSeat(C.Pawn);
 						continue;
+					}
 					//Capture the driver pawn BEFORE killing - the vehicle's
 					//Died() destroys its own controller C, so any C access
 					//afterwards is "Accessed None 'C'".
@@ -2867,9 +2869,17 @@ function bool KillOneWaveEndMonster()
 			PN = string(C.Pawn.Class.Name);
 			if ( Left(PN, 14) == "VehicleMonster" )
 			{
-				//seat pawns die with their vehicle (KillGunners), never on their own
+				//seat pawns die with their vehicle (KillGunners); only an orphaned
+				//seat (its vehicle already gone) is killed here
 				if ( ONSWeaponPawn(C.Pawn) != None )
+				{
+					if ( IsOrphanGunnerSeat(C.Pawn) )
+					{
+						KillOrphanGunnerSeat(C.Pawn);
+						return true;
+					}
 					continue;
+				}
 				//capture the driver BEFORE killing - the vehicle's Died()
 				//destroys its own controller C
 				DriverPawn = None;
@@ -2902,6 +2912,25 @@ function bool KillOneWaveEndMonster()
 		}
 	}
 	return false;
+}
+
+//A gunner seat whose vehicle is gone or dead. Its own Died() never runs if the
+//vehicle's Died() bailed, so it would stay counted by NumHostileMonsters() forever.
+function bool IsOrphanGunnerSeat(Pawn P)
+{
+	local ONSWeaponPawn W;
+
+	W = ONSWeaponPawn(P);
+	if ( W == None || W.Health <= 0 )
+		return false;
+	return ( W.VehicleBase == None || W.VehicleBase.bDeleteMe
+		|| W.VehicleBase.Health <= 0 || W.VehicleBase.bVehicleDestroyed );
+}
+
+function KillOrphanGunnerSeat(Pawn P)
+{
+	P.Health = 0;
+	P.Died(None, class'Suicided', P.Location);
 }
 
 //true while a hostile monster exists that the controller loop above cannot see

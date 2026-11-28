@@ -3004,6 +3004,28 @@ function KillControllerlessMonsters(string Reason)
 			P.Died(None, class'Suicided', P.Location);
 		}
 	}
+	KillDeadPawnsWithControllers(Reason);
+}
+
+//Pawns at Health <= 0 whose Died() bailed out early (monster packs that override PlayDying or Died)
+//keep a live controller and keep attacking while frozen. Destroy the controller and the pawn.
+function KillDeadPawnsWithControllers(string Reason)
+{
+	local Pawn P;
+
+	foreach DynamicActors(class'Pawn', P)
+	{
+		if( P != None && !P.bDeleteMe && P.Health <= 0 && P.Controller != None && !P.Controller.bDeleteMe
+			&& !P.IsA('Vehicle') && !P.IsA('VehicleWeaponPawn') && !P.Controller.IsA('PlayerController')
+			&& !P.Controller.IsA('FriendlyMonsterController') && !P.Controller.IsA('PetController') )
+		{
+			Log("Dead pawn with live controller removed:" @ Reason @ "| wave" @ WaveNum @ "| time" @ Level.TimeSeconds
+				@ "| class" @ string(P.Class) @ "| controller" @ string(P.Controller.Class), 'InvasionPro');
+			P.Controller.Destroy();
+			P.Controller = None;
+			P.Destroy();
+		}
+	}
 }
 
 function int GetSpawnBySkillWeight(int NumSpawns, int NumKills, int NumDamage)
